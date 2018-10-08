@@ -5,18 +5,17 @@ low_value_freq_array = 36;
 handling_time{1}=15;
 handling_time{2}=30;
 delay2disappear = .5;
-mouse_start_latency = 1.5;
+mouse_start_latency = 1.5;%simulate when the mouse engages after the track appears
 start_latency_CRIT = 5;
-totalWater = zeros(length(high_value_freq_array),1); % arr ay to store triforce totals after each simulation
+totalWater = zeros(length(high_value_freq_array),1); % array to store total water each simulation
 
 timeSims = 10000*60; %time per simulation
 
 for j = 1:2
-    display(j)
     if j==1
-        abort_or_engage_low_value_track = 0; % 0 for abort, 1 for engage
+        abort_or_engage_low_value_track = 0; % 0 for abort, 1 for engage with the low value track
     elseif j==2
-        abort_or_engage_low_value_track = 1; % 0 for abort, 1 for engage
+        abort_or_engage_low_value_track = 1; % 0 for abort, 1 for engage with the low value track
         
     end
     rng('shuffle'); % shuffle random number generator
@@ -24,13 +23,10 @@ for j = 1:2
     for lll=1:length(low_value_freq_array)
         freq_low_value = 1/low_value_freq_array(lll);
         
-        for i = 1:length(high_value_freq_array) % run once per each possible behavior
-            %disp(i)
-            freq_high_value = 1/high_value_freq_array(i);
-            %simWater = zeros(numSims,1); % reset array of triforce per sim to zero
-            
-            
-            for k = 1
+        for i = 1:length(high_value_freq_array) % run once per each high value track freq
+            freq_high_value = 1/high_value_freq_array(i);   
+            for k = 1 %how many sessions to run
+                %initialize values
                 coin_positive_duringSL_reappear = 0;
                 coin_negative_duringSL_reappear = 0;
                 HighTrials = 0;
@@ -49,13 +45,11 @@ for j = 1:2
                 track1_trialTimer = 0;
                 track2_trialTimer = 0;
                 rng('shuffle'); % shuffle random number generator
-                %disp(k);
                 while SessionTimer < timeSims
                     if ITI ==0
                         %track appears
                         %start latency, flip coins
                         while flippin_duringSL < (start_latency_CRIT + 0.5) && flipping > 0
-                            %if flippin_duringITI_SW > flippin_duringITI
                             %flip coin
                             n=rand(1);
                             if n < freq_high_value
@@ -115,38 +109,39 @@ for j = 1:2
                                 %track does not appear in this sec, keep flipping the coin
                             end
                         end
-                        %display(current_track_type)
                         if current_track_type == 1
-                            HighTrials = HighTrials +1;
-                            %engage
+                            %engage 100% for high value track
+                            HighTrials = HighTrials +1;%keep track of the occurance of high value track
                             reward_this_trial = 4;
                             ITI=2;
-                            TrialTimer = TrialTimer  + mouse_start_latency+ handling_time{1};
+                            TrialTimer = TrialTimer  + mouse_start_latency+ handling_time{1};%add time to trial time
                         elseif current_track_type == 2
-                            LowTrials = LowTrials +1;
-                            
+                            LowTrials = LowTrials +1;%keep track of the occurance of low value track
                             %abort
                             if abort_or_engage_low_value_track ==0
                                 reward_this_trial = 0;
                                 ITI=2.5;
-                                TrialTimer = TrialTimer  + start_latency_CRIT;
-                                %engage
+                                TrialTimer = TrialTimer  + start_latency_CRIT;%add time to trial time
+                            %engage
                             elseif abort_or_engage_low_value_track ==1
                                 reward_this_trial = 2;
                                 ITI  =2;
-                                TrialTimer = TrialTimer  + mouse_start_latency+  handling_time{2};
+                                TrialTimer = TrialTimer  + mouse_start_latency+  handling_time{2};%add time to trial time
                             end
                         end
-                        %display(reward_this_trial)
+
                     end
                     % ITI =2 or 2.5 track disappears after reward or abort
                     if ITI ==2 || 2.5
                         TrialTimer = TrialTimer + delay2disappear;
                         if ITI==2
+                            %if reappear flag is 1, wait for 2 sec and go
+                            %to ITI=4
                             if reappear_flag == 1
                                 ITI=4;
                                 reappear_flag = 2;
                                 TrialTimer = TrialTimer + 2;
+                            %if reappear flag is 0, go to ITI=3
                             elseif reappear_flag == 0
                                 ITI=3;
                                 
@@ -156,9 +151,7 @@ for j = 1:2
                         elseif ITI==2.5
                             %%%%%%%flip coins
                             if reappear_flag ==0
-                                while flippin_duringReappearWait < 2.5
-                                    
-                                    %if flippin_duringITI_SW > flippin_duringITI
+                                while flippin_duringReappearWait < 2
                                     %flip coin
                                     n=rand(1);
                                     if n < freq_high_value
@@ -209,18 +202,15 @@ for j = 1:2
                                     end
                                 end
                             end
-                            if reappear_flag == 1
+                            
+                            if reappear_flag == 1%if reappear_flag become 1 within the 2 sec, go to ITI=4
                                 coin_positive_duringSL_reappear = coin_positive_duringSL_reappear +1;
-                                %display('coin flipped during SL/reppear')
                                 ITI=4;
                                 reappear_flag = 2;
                                 TrialTimer = TrialTimer + 2;
-                            elseif reappear_flag == 0
+                            elseif reappear_flag == 0%if reappear_flag is still zero after 2 sec, go to ITI=3
                                 coin_negative_duringSL_reappear = coin_negative_duringSL_reappear +1;
-
                                 TrialTimer = TrialTimer + 2;
-                                %display('coin negative')
-
                                 ITI=3;
                                 
                             end
@@ -228,9 +218,7 @@ for j = 1:2
                     end
                     % ITI=3: waiting before eligible to start new trial
                     if ITI==3
-                        %fluppin_duringITI_SW = fluppin_duringITI_SW + dt;
                         while 1
-                            %if flippin_duringITI_SW > flippin_duringITI
                             %flip coin
                             n=rand(1);
                             if n < freq_high_value
@@ -289,18 +277,18 @@ for j = 1:2
                     if ITI ==4
                         
                         
-                        simWater = [simWater reward_this_trial]; % store triforce earned
-                        SessionTimer = SessionTimer + TrialTimer;
+                        simWater = [simWater reward_this_trial]; % store water earned this trial
+                        SessionTimer = SessionTimer + TrialTimer;%add the time that took for this trial to the session timer
                         %initialize values
                         reward_this_trial= 0;
                         current_track_type = track_type;
-                        if current_track_type ==1
-                            
-                            track1_trialTimer = track1_trialTimer + TrialTimer;
-                        elseif current_track_type ==2
-                            track2_trialTimer = track2_trialTimer + TrialTimer;
-
-                        end
+%                         if current_track_type ==1
+%                             
+%                             track1_trialTimer = track1_trialTimer + TrialTimer;
+%                         elseif current_track_type ==2
+%                             track2_trialTimer = track2_trialTimer + TrialTimer;
+% 
+%                         end
                         reappear_flag =0;
                         ITI = 0;
                         flippin_duringITI=1;
@@ -313,20 +301,17 @@ for j = 1:2
                     
                     
                 end
-                totalWater_per_hour(i,k) = sum(simWater);
+                totalWater_per_session(i,k) = sum(simWater);
             end
-            totalWater(i) = mean(totalWater_per_hour(i,:)); % save total triforce earned per simulation
-            %             if j==1
-            %                 allWater_abort(i,:) = {simWater};
-            %             elseif j==2
-            %                 allWater_engage(i,:) = {simWater};
-            %             end
+            totalWater(i) = mean(totalWater_per_session(i,:)); % save total water earned per simulation
+
         end
         totalWater_per_low_freq{lll} = totalWater;
         
         %display([HighTrials LowTrials TrialNum]);
         %display([track1_trialTimer track2_trialTimer])
     end
+    %save the total water in mat file
     if abort_or_engage_low_value_track == 0
         totalWater_all_low_aborted = totalWater_per_low_freq;
         save('15_30_low_freq_36_totalWater_all_low_aborted.mat','totalWater_all_low_aborted')
@@ -335,11 +320,13 @@ for j = 1:2
         save('15_30_low_freq_36_totalWater_all_low_engaged.mat','totalWater_all_low_engaged')
     end
 end
+%calculate and save the indifference point (threshold where it is the same total water whether the mouse engage or abort the low value track)
 indifference_point = max(find(totalWater_all_low_aborted{1,1}>totalWater_all_low_engaged{1,1}));
 save('15_30_low_freq_36_indifference_point.mat','indifference_point')
 
 
 %%
+%plot
 % load('test_longtime_totalWater_all_low_aborted.mat')
 % load('test_longtime_totalWater_all_low_engaged.mat')
 figure;
