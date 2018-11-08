@@ -1,8 +1,8 @@
 currentDirectory = pwd;
 [upperPath, dateStr, ~] = fileparts(currentDirectory);
 sessionDate = str2num(dateStr(end-3:end));
-switch_flag=0;
-
+switch_flag=1;
+%%
 load(['TaskVars' num2str(sessionDate) '.mat']);
 %load(['Trials' num2str(sessionDate) '.mat']);
 
@@ -33,6 +33,15 @@ track2_median_engage_latency = nanmedian(trials((find(trials(:,3)==2)),4));
 %track1_occurance_freq = total_search_time/track1_occurance;
 %track2_occurance_freq = total_search_time/track2_occurance;
 
+%%
+if ~isempty(find(trials(:,2)==352))
+    idx_to_fix=find(trials(:,2)==352);
+    trials(idx_to_fix,2)=322;
+elseif ~isempty(find(trials(:,2)==354))
+    idx_to_fix=find(trials(:,2)==354);
+    trials(idx_to_fix,2)=314;
+end
+
 if switch_flag==1
     before_track1_engage_percent = length(find(trials(1:switchNum-1,3)==4))/length(find(trials(1:switchNum-1,2)==314));
     before_track2_engage_percent = length(find(trials(1:switchNum-1,3)==2))/length(find(trials(1:switchNum-1,2)==322));
@@ -54,4 +63,4 @@ else
 end
 %% 
 cd ..
-dlmwrite('DAQ_stats.csv',all_stats,'delimiter',',', '-append');
+dlmwrite('DAQ_stats_2.csv',all_stats,'delimiter',',', '-append');
