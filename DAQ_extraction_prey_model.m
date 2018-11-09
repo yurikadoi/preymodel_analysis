@@ -18,13 +18,14 @@ else
 
 end
 
-switch_flag=1;
-channel_flag = 2;
+switch_flag=0;
+channel_flag = 3;
 %%
 %channel before the move:: 2:speed, 3:lick, 4:watervalve, 5:trial events
 switch channel_flag
+        %original channel configuration before the move (move happened on the 10/23/18)
     case 1
-        ch_speed = 2;
+        ch_speed = 2;%speed from optic mouse
         ch_lick=3;
         ch_watervalve=4;
         ch_trialevents=5;
@@ -32,24 +33,34 @@ switch channel_flag
         %channel after the move:: 1:speed (from optic mouse), 2:lick, 3:watervalve, 4:trial events
         %5:rotary encoder
     case 2
-        ch_speed = 1;
+        ch_speed = 1;%speed from optic mouse
         ch_lick=2;
         ch_watervalve=3;
         ch_trialevents=4;
+        
         %channel after the rotary encoder introduced (the date is 11/1/18. the
-        %optic mouse was removed from the channel on ???)
+        %optic mouse was removed from the channel on 11/5/18 before running)
     case 3
-        ch_speed = 2;
-        ch_lick=3;
-        ch_watervalve=4;
-        ch_trialevents=5;
+        ch_opticmouse = 1;%speed from optic mouse
+        ch_lick=2;
+        ch_watervalve=3;
+        ch_trialevents=4;
+        ch_speed = 5;%speed from rotary encoder
+        
+        %%channel after the optic mouse got disconnected (starting on
+        %%11/5/18)
+    case 4
+        ch_speed = 1;%speed from rotary encoder
+        ch_lick=2;
+        ch_watervalve=3;
+        ch_trialevents=4;
 end
 %%
 %load daq file
 %daqdat = dir('DaqData*.daq');
 daqdat = dir('*.daq');
 
-[daq_data, daq_time, abstime, daq_events] = daqread(daqdat.name);
+[daq_data, daq_time, abstime, daq_events] = daqread(daqdat(1).name);
 save('daq_data.mat','daq_data')
 %%
 %use trial events (channel 5) to identify trials
@@ -186,7 +197,9 @@ while iBin < daq_end
         tracksApp_licks{numTrial} = daq_data(trackOn_curr-msPrior:trackOff_curr+msAfter,ch_lick);
         tracksApp_rewvalve{numTrial} = .5*daq_data(trackOn_curr-msPrior:trackOff_curr+msAfter,ch_watervalve); %1/2 voltage so it fits plots nicer
         tracksApp_trialevents{numTrial} = .5*daq_data(trackOn_curr-msPrior:trackOff_curr+msAfter,ch_trialevents); % 1/2 so it fits nicer on plots
-        
+        if channel_flag ==3
+            tracksApp_opticmouse{numTrial} = daq_data(trackOn_curr-msPrior:trackOff_curr+msAfter,ch_opticmouse);
+        end
 
     else
         disp('line 98 break'); 
@@ -198,7 +211,12 @@ end
 
 preyData_fromDAQ = [1:length(tracks_type); CBA_track_type; reward_size; engage_latencies; wait4stop; searchtime4mouse]';
 
-save('tracksApp.mat','tracksApp_speed','tracksApp_licks','tracksApp_rewvalve','tracksApp_trialevents')
+if channel_flag ==3
+    save('tracksApp.mat','tracksApp_speed','tracksApp_licks','tracksApp_rewvalve','tracksApp_trialevents','tracksApp_opticmouse')
+    
+else
+    save('tracksApp.mat','tracksApp_speed','tracksApp_licks','tracksApp_rewvalve','tracksApp_trialevents')
+end
 save('preyData_fromDAQ.mat','preyData_fromDAQ')
 
 
