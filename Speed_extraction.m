@@ -35,8 +35,8 @@ numTrial = 1; % keeps track of track number
 daq_end = length(daq_data(:,5)); % last index for daq_data time points
 
 delay2disappear=.5;
-msPrior = 2000; % ms prior to patch stop to save per trial (also used for TT)
-msAfter = 2000; % ms after included
+msPrior = 5000; % ms prior to patch stop to save per trial (also used for TT)
+msAfter = 5000; % ms after included
 engage_latency_allowance = 15*1000;
 % msPrior = 0; % ms prior to patch stop to save per trial (also used for TT)
 % msAfter = 0;
@@ -70,18 +70,14 @@ while iBin < daq_end
     end
     trackOn_indx(end+1) = trackOn_curr; %save index if there was a patchOn
     trackOn_max(end+1)= max(daq_data(trackOn_curr:trackOn_curr+10,5)); %max signal during patchOn to determine trial type
-    
-    % divide by .1 so you can use round to get whole numbers for patchIDs
-    % (because if using probe trials, not all IDs approximate integars)
-   
-    %thisBin_TrackOn(numTrack,:) = daq_data(trackOn_curr:trackOn_curr+10,5);
+
     iBin = trackOn_curr + 10;
     next_trackOn_curr = iBin + find(daq_data(iBin:daq_end,5)> 0.8 & daq_data(iBin:daq_end,5)< 2.5,1);
     if isempty(next_trackOn_curr)
         next_trackOn_curr = daq_end;
     end
     %find out if the trial was aborted or rewarded
-    %positive_signal = next_trackOn_curr;\
+
     if iBin+engage_latency_allowance < daq_end
         window_end = iBin+engage_latency_allowance;
     else
@@ -90,13 +86,13 @@ while iBin < daq_end
     %next_searchtime_duringSL
     if sound_trigger_added_flag == 1
         sound = find(daq_data(trackOff_curr:iBin,5) < -3,1) + trackOff_curr;
-        %searchtime(end+1) = next_searchtime_duringSL + sound - trackOff_curr;
-        searchtime4mouse(end+1) = sound - trackOff_curr;%%%%%%%%%this needs to get fixed
+
+        searchtime4mouse(end+1) = sound - trackOff_curr;
         wait4stop(end+1) = trackOn_curr - sound;
     end
     if ~isempty(find(daq_data(iBin:window_end,5)<-.8,1))
         %aborted
-        %display(iBin)
+
         reward_size(end+1) = 0;
         aborted_rewarded(end+1)=0;%aborted
         engage_latencies(end+1) =0;
@@ -122,8 +118,8 @@ while iBin < daq_end
     if (trackOn_curr+msAfter <= length(daq_data(:,2)))% break if +msAfter exceeds last timepoint for daq data
         
         speed_around_trackApp{numTrial} = daq_data(trackOn_curr-msPrior:trackOn_curr+msAfter,2);
-        
-        
+        speed_around_sound{numTrial} = daq_data(sound-msPrior:sound+msAfter,2);
+        event_around_sound{numTrial}= daq_data(sound-msPrior:sound+msAfter,5);
 
     else
         disp('line 98 break'); 
@@ -132,4 +128,6 @@ while iBin < daq_end
     
     numTrial=numTrial+1; 
 end
-save('speed_around_trackApp.mat','speed_around_trackApp')
+%save('speed_around_trackApp.mat','speed_around_trackApp')
+save('speed_around_sound.mat','speed_around_sound')
+save('event_around_sound.mat','event_around_sound')
