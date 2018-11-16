@@ -1,7 +1,7 @@
 currentDirectory = pwd;
 [upperPath, dateStr, ~] = fileparts(currentDirectory);
 sessionDate = str2num(dateStr(end-3:end));
-switch_flag=0;
+switch_flag=1;
 %%
 %load(['TaskVars' num2str(sessionDate) '.mat']);
 %load(['Trials' num2str(sessionDate) '.mat']);
@@ -9,7 +9,7 @@ switch_flag=0;
 load('preyData_fromDAQ.mat')
 trials=preyData_fromDAQ;
 
-
+%Whe switch happens fix the trial CBA
 if ~isempty(find(trials(:,2)==352))
     idx_to_fix=find(trials(:,2)==352);
     trials(idx_to_fix,2)=322;
