@@ -18,8 +18,8 @@ else
 
 end
 
-switch_flag=0;
-channel_flag = 3;
+switch_flag=1;
+channel_flag = 1;
 %%
 %channel before the move:: 2:speed, 3:lick, 4:watervalve, 5:trial events
 switch channel_flag
@@ -74,8 +74,6 @@ delay2disappear=.5;
 msPrior = 1000; % ms prior to patch stop to save per trial (also used for TT)
 msAfter = 2000; % ms after included
 engage_latency_allowance = 15*1000;
-% msPrior = 0; % ms prior to patch stop to save per trial (also used for TT)
-% msAfter = 0
 
 trackOn_curr = []; % current patchOn index
 trackOn_indx = []; % array of all patchOn indices
@@ -99,7 +97,6 @@ next_searchtime_duringSL=0;
 %% extract trial data from DAQ analog input signals
 while iBin < daq_end
     % find next time w 'trackOn' signal
-    %iBin
     trackOn_curr = iBin + find((daq_data(iBin:daq_end,ch_trialevents)> 0.8 & daq_data(iBin:daq_end,ch_trialevents)< 1.3) | (daq_data(iBin:daq_end,ch_trialevents)> 2.0 & daq_data(iBin:daq_end,ch_trialevents)< 2.2) | (daq_data(iBin:daq_end,ch_trialevents)< -2.2 & daq_data(iBin:daq_end,ch_trialevents)> -2.8) | (daq_data(iBin:daq_end,ch_trialevents)< -4.2 & daq_data(iBin:daq_end,ch_trialevents)> -4.8) ,1);
     while 1
         if isempty(trackOn_curr) %no more tracks appear
@@ -113,7 +110,7 @@ while iBin < daq_end
         if (daq_data(trackOn_curr+1,ch_trialevents)> 0.8 & daq_data(trackOn_curr+1,ch_trialevents)< 1.3) | (daq_data(trackOn_curr+1,ch_trialevents)> 2.0 & daq_data(trackOn_curr+1,ch_trialevents)< 2.2) | (daq_data(trackOn_curr+1,ch_trialevents)< -2.2 & daq_data(trackOn_curr+1,ch_trialevents)> -2.8) | (daq_data(trackOn_curr+1,ch_trialevents)< -4.2 & daq_data(trackOn_curr+1,ch_trialevents)> -4.8)
             break
         else
-            iBin = trackOn_curr + 1
+            iBin = trackOn_curr + 1;
             pre_trackOn_curr = iBin + find((daq_data(iBin:daq_end,ch_trialevents)> 0.8 & daq_data(iBin:daq_end,ch_trialevents)< 1.3) | (daq_data(iBin:daq_end,ch_trialevents)> 2.0 & daq_data(iBin:daq_end,ch_trialevents)< 2.2) | (daq_data(iBin:daq_end,ch_trialevents)< -2.2 & daq_data(iBin:daq_end,ch_trialevents)> -2.8) | (daq_data(iBin:daq_end,ch_trialevents)< -4.2 & daq_data(iBin:daq_end,ch_trialevents)> -4.8) ,1);
             trackOn_curr=pre_trackOn_curr;
         end
@@ -125,41 +122,37 @@ while iBin < daq_end
     trackOn_indx(end+1) = trackOn_curr; %save index if there was a patchOn
     trackOn_max(end+1)= max(daq_data(trackOn_curr:trackOn_curr+25,ch_trialevents)); %max signal during patchOn to determine trial type
     trackOn_min = min(daq_data(trackOn_curr:trackOn_curr+25,ch_trialevents));
+    
+    %detect when the switch of environment occurs
     if trackOn_min < -1
         if switch_flag==1
-            
-            disp('!!!!!')
             disp(length(trackOn_max))
             disp(iBin)
             disp(trackOn_max(end))
-            trackOn_max(end)= -min(daq_data(trackOn_curr:trackOn_curr+10,ch_trialevents))/2; %max signal during patchOn to determine trial type
+            trackOn_max(end)= -min(daq_data(trackOn_curr:trackOn_curr+10,ch_trialevents))/2; %min signal during patchOn to determine trial type
         else
             disp('error:inapropriate trackOn_max value')
         end
     end
-    % divide by .1 so you can use round to get whole numbers for patchIDs
-    % (because if using probe trials, not all IDs approximate integars)
-   
-    %thisBin_TrackOn(numTrack,:) = daq_data(trackOn_curr:trackOn_curr+10,ch_trialevents);
+
     iBin = trackOn_curr + 26;
     next_trackOn_curr = iBin + find((daq_data(iBin:daq_end,ch_trialevents)> 0.8 & daq_data(iBin:daq_end,ch_trialevents)< 1.3) | (daq_data(iBin:daq_end,ch_trialevents)> 2.0 & daq_data(iBin:daq_end,ch_trialevents)< 2.2) | (daq_data(iBin:daq_end,ch_trialevents)< -2.2 & daq_data(iBin:daq_end,ch_trialevents)> -2.8) | (daq_data(iBin:daq_end,ch_trialevents)< -4.2 & daq_data(iBin:daq_end,ch_trialevents)> -4.8) ,1);
 
     if isempty(next_trackOn_curr)
         next_trackOn_curr = daq_end;
     end
-    %find out if the trial was aborted or rewarded
-    %positive_signal = next_trackOn_curr;\
+
     if iBin+engage_latency_allowance < daq_end
         window_end = iBin+engage_latency_allowance;
     else
         window_end=daq_end;
     end
-    %next_searchtime_duringSL
+
+    %calculate searchtime and wait4stop based on the timing of sound
     if sound_trigger_added_flag == 1
         sound = find((daq_data(trackOff_curr:iBin,ch_trialevents) < -3 & daq_data(trackOff_curr:iBin,ch_trialevents) > -4.1),1) + trackOff_curr;
-        %searchtime(end+1) = next_searchtime_duringSL + sound - trackOff_curr;
         if ~isempty(sound)
-            searchtime4mouse(end+1) = sound - trackOff_curr;%%%%%%%%%this needs to get fixed
+            searchtime4mouse(end+1) = sound - trackOff_curr;
             wait4stop(end+1) = trackOn_curr - sound;
         else
             searchtime4mouse(end+1) = NaN;
@@ -168,7 +161,6 @@ while iBin < daq_end
     end
     if ~isempty(find((daq_data(iBin:window_end,ch_trialevents)<-.8 & daq_data(iBin:window_end,ch_trialevents)>-3),1))
         %aborted
-        %display(iBin)
         reward_size(end+1) = 0;
         aborted_rewarded(end+1)=0;%aborted
         engage_latencies(end+1) =0;
@@ -218,14 +210,4 @@ else
     save('tracksApp.mat','tracksApp_speed','tracksApp_licks','tracksApp_rewvalve','tracksApp_trialevents')
 end
 save('preyData_fromDAQ.mat','preyData_fromDAQ')
-
-
-%%
-% for thisTrial=1:10
-%     figure;
-%     plot(tracksApp_speed{thisTrial});
-%     hold on;
-%     plot(tracksApp_licks{thisTrial});
-%     plot(tracksApp_rewvalve{thisTrial});
-%     plot(tracksApp_trialevents{thisTrial});
-% end
+save('trackOn_indx.mat','trackOn_indx')
